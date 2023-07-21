@@ -1141,7 +1141,8 @@ const NEWSLETTER_OPT_IN         = "newsletter-opt-in";
 			basketItems = basket.basketItems;
 			basketData = basket.basketData
 
-			{% set webstoreName = webstoreConfig.name|trim|raw %}
+            // Set basket values when dom is ready.
+            setGlobalValues(null, basketItems, basketData);
 
 			// Cache original setter.
 			let originalSetter = Object.getOwnPropertyDescriptor(ceresStore.state.user, 'userData').set;
@@ -1150,32 +1151,37 @@ const NEWSLETTER_OPT_IN         = "newsletter-opt-in";
 			Object.defineProperty(ceresStore.state.user, 'userData', {
 				set(userData) {
 					originalSetter.call(this, userData);
-
-					dataLayer.push ({
-						"event": "globalValues",
-						"currency": "{{ currencyData.name }}",
-						"lang": "{{ lang }}",
-						"pageType": "{{ pageType }}",
-						{% if '"' in webstoreName == true and "'" in webstoreName == false %}
-						"webstoreName": '{{ webstoreConfig.name|trim|raw }}',
-						{% elseif '"' in webstoreName == false and "'" in webstoreName == true %}
-						"webstoreName": "{{ webstoreConfig.name|trim|raw }}",
-						{% elseif '"' in webstoreName == true and "'" in webstoreName == true %}
-						"webstoreName": "{{ webstoreConfig.name|trim }}",
-						{% else %}
-						"webstoreName": "{{ webstoreConfig.name|trim|raw }}",
-						{% endif %}
-						"customerEmail": userData?.email ?? "",
-						"customerId": userData?.id ?? 0,
-						"basketItems": basketItems,
-						"basketData": basketData
-					});
+                    setGlobalValues(userData, basketItems, basketData);
 				}
 			});
 
 			openBasketPreview();
 
 		});
+
+		{% set webstoreName = webstoreConfig.name|trim|raw %}
+
+		let setGlobalValues = (userData, basketItems, basketData) => {
+			dataLayer.push ({
+				"event": "globalValues",
+				"currency": "{{ currencyData.name }}",
+				"lang": "{{ lang }}",
+				"pageType": "{{ pageType }}",
+				{% if '"' in webstoreName == true and "'" in webstoreName == false %}
+				"webstoreName": '{{ webstoreConfig.name|trim|raw }}',
+				{% elseif '"' in webstoreName == false and "'" in webstoreName == true %}
+				"webstoreName": "{{ webstoreConfig.name|trim|raw }}",
+				{% elseif '"' in webstoreName == true and "'" in webstoreName == true %}
+				"webstoreName": "{{ webstoreConfig.name|trim }}",
+				{% else %}
+				"webstoreName": "{{ webstoreConfig.name|trim|raw }}",
+				{% endif %}
+				"customerEmail": userData?.email ?? "",
+				"customerId": userData?.id ?? 0,
+				"basketItems": basketItems,
+				"basketData": basketData
+			});
+		};
 
 		{% if services.template.isCurrentTemplate("tpl.register") == false %}
 			var signUpLogged = false;
