@@ -1143,32 +1143,34 @@ const NEWSLETTER_OPT_IN         = "newsletter-opt-in";
 
 			{% set webstoreName = webstoreConfig.name|trim|raw %}
 
-			var userData = ceresStore.state.user.userData;
-			var userDataEmail = "";
-			var userDataId = 0;
-			if(userData !== null) {
-				userDataEmail = userData.email;
-				userDataId = userData.id;
-			}
+			// Cache original setter.
+			let originalSetter = Object.getOwnPropertyDescriptor(ceresStore.state.user, 'userData').set;
 
-			dataLayer.push ({
-				"event": "globalValues",
-				"currency": "{{ currencyData.name }}",
-				"lang": "{{ lang }}",
-				"pageType": "{{ pageType }}",
-				{% if '"' in webstoreName == true and "'" in webstoreName == false %}
-				"webstoreName": '{{ webstoreConfig.name|trim|raw }}',
-				{% elseif '"' in webstoreName == false and "'" in webstoreName == true %}
-				"webstoreName": "{{ webstoreConfig.name|trim|raw }}",
-				{% elseif '"' in webstoreName == true and "'" in webstoreName == true %}
-				"webstoreName": "{{ webstoreConfig.name|trim }}",
-				{% else %}
-				"webstoreName": "{{ webstoreConfig.name|trim|raw }}",
-				{% endif %}
-				"customerEmail": userDataEmail,
-				"customerId": userDataId,
-				"basketItems": basketItems,
-				"basketData": basketData
+			// Define new setter to fill globalValues in dataLayer when userData was asynchronously fetched.
+			Object.defineProperty(ceresStore.state.user, 'userData', {
+				set(userData) {
+					originalSetter.call(this, userData);
+
+					dataLayer.push ({
+						"event": "globalValues",
+						"currency": "{{ currencyData.name }}",
+						"lang": "{{ lang }}",
+						"pageType": "{{ pageType }}",
+						{% if '"' in webstoreName == true and "'" in webstoreName == false %}
+						"webstoreName": '{{ webstoreConfig.name|trim|raw }}',
+						{% elseif '"' in webstoreName == false and "'" in webstoreName == true %}
+						"webstoreName": "{{ webstoreConfig.name|trim|raw }}",
+						{% elseif '"' in webstoreName == true and "'" in webstoreName == true %}
+						"webstoreName": "{{ webstoreConfig.name|trim }}",
+						{% else %}
+						"webstoreName": "{{ webstoreConfig.name|trim|raw }}",
+						{% endif %}
+						"customerEmail": userData?.email ?? "",
+						"customerId": userData?.id ?? 0,
+						"basketItems": basketItems,
+						"basketData": basketData
+					});
+				}
 			});
 
 			openBasketPreview();
